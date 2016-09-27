@@ -12,14 +12,14 @@ import AudioToolbox
 
 class ViewController: UIViewController {
   
-  let allTrivias = QuestionModel()
-  var questionsPerRound = 0
-  var questionsAsked = 0
-  var correctQuestions = 0
-  var randomIndex: Int = 0
+  var allOfThem = allQuestions
+  var questionsPerRound = allQuestions.count
+  var questionCounter: Int = 0
+  var questionsAsked: Int = 0
+  var correctQuestions: Int = 0
   var gameSound: SystemSoundID = 0
-  var questionDictionary: [[String:String]] = []
-  var currentQuestion: [String:String] = [:]
+  var optionsArray:[UIButton] = []
+  
   
   @IBOutlet weak var questionField: UILabel!
   @IBOutlet weak var option0: UIButton!
@@ -33,9 +33,7 @@ class ViewController: UIViewController {
     loadGameStartSound()
     // Start game
     playGameStartSound()
-    setQuestionsPerRound()
-    setTrivias()
-    getQuestion()
+    allOfThem = allQuestions.shuffle()
     displayQuestion()
   }
   
@@ -45,25 +43,26 @@ class ViewController: UIViewController {
   }
   
   func displayQuestion() {
-    var optionsArray:[UIButton] = setOptionsArray()
-    questionField.text = currentQuestion["question"]
+    
+    let currentQuestion = allOfThem[questionCounter]
+    questionField.text = currentQuestion.question
     playAgainButton.hidden = true
     
-    for i in 0..<optionsArray.count {
-      optionsArray[i].hidden = false;
-      optionsArray[i].setTitle(currentQuestion["option\(i)"], forState: .Normal)
-    }
-    
+    option0.setTitle(currentQuestion.option0, forState: .Normal)
+    option1.setTitle(currentQuestion.option1, forState: .Normal)
+    option2.setTitle(currentQuestion.option2, forState: .Normal)
+    option3.setTitle(currentQuestion.option3, forState: .Normal)
+
   }
   
   func displayScore() {
     
-    var optionsArray:[UIButton] = setOptionsArray()
+    optionsArray = setOptionsArray()
     
     for i in 0..<optionsArray.count {
       optionsArray[i].hidden = true;
     }
-
+    
     // Display play again button
     playAgainButton.hidden = false
     questionField.text = "Way to go!\nYou got \(correctQuestions) out of \(questionsPerRound) correct!"
@@ -71,8 +70,11 @@ class ViewController: UIViewController {
   }
   
   @IBAction func checkAnswer(sender: UIButton) {
+    let currentQuestion = allOfThem[questionCounter]
+    
     let chosenOption = sender.currentTitle!
-    let correctAnswer = currentQuestion["answer"]!
+    let correctAnswer = currentQuestion.correctAnswer
+    
     var optionsArray:[UIButton] = setOptionsArray()
     
     questionsAsked += 1
@@ -82,6 +84,7 @@ class ViewController: UIViewController {
       playRightAnswerSound()
       questionField.text = "Correct!"
       correctQuestions += 1
+      
       for i in 0..<optionsArray.count {
         if optionsArray[i].currentTitle! != correctAnswer {
           optionsArray[i].setTitleColor(setOpacity(), forState: .Normal)
@@ -97,8 +100,11 @@ class ViewController: UIViewController {
       }
       questionField.text = "Sorry, wrong answer!"
     }
-    loadNextRoundWithDelay(seconds: 2)
+    questionCounter += 1
+    loadNextRoundWithDelay(2)
+    
   }
+  
   
   func nextRound() {
     if questionsAsked == questionsPerRound {
@@ -109,24 +115,24 @@ class ViewController: UIViewController {
       let optionsArray:[UIButton] = setOptionsArray()
       
       for i in 0..<optionsArray.count {
+        optionsArray[i].hidden = false;
         optionsArray[i].setTitleColor(restoreOpacity(), forState: .Normal)
       }
-      getQuestion()
       displayQuestion()
     }
   }
   
-  
   @IBAction func playAgain() {
     questionsAsked = 0
+    questionCounter = 0
     correctQuestions = 0
-    setTrivias()
+    allOfThem = allQuestions.shuffle()
     nextRound()
   }
   
   // MARK: Helper Methods
   
-  func loadNextRoundWithDelay(seconds seconds: Int) {
+  func loadNextRoundWithDelay(seconds: Int) {
     // Converts a delay in seconds to nanoseconds as signed 64 bit integer
     let delay = Int64(NSEC_PER_SEC * UInt64(seconds))
     // Calculates a time value to execute the method given current time and delay
@@ -167,30 +173,7 @@ class ViewController: UIViewController {
   func playWrongAnswerSound() {
     AudioServicesPlaySystemSound(gameSound)
   }
-  
-  func setTrivias() -> [[String:String]] {
-    
-    var newTrivias = allTrivias.trivias
-    var counter = newTrivias.count
-    while counter != 0 {
-      randomIndex = GKRandomSource.sharedRandom().nextIntWithUpperBound(newTrivias.count)
-      questionDictionary.append(newTrivias.removeAtIndex(randomIndex))
-      counter -= 1
-    }
-    return questionDictionary
-    
-  }
-  
-  func getQuestion() -> [String:String] {
-    currentQuestion = questionDictionary.removeFirst()
-    return currentQuestion
-  }
-  
-  func setQuestionsPerRound() -> Int {
-    questionsPerRound = allTrivias.count()
-    return questionsPerRound
-  }
-  
+
   func setOpacity() -> UIColor {
     return UIColor(red: 255.0/255.0, green: 255.0/255.0, blue: 255.0/255.0, alpha: 0.3)
   }
